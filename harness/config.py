@@ -45,7 +45,7 @@ VLM_MODEL = os.environ.get("HARNESS_VLM_MODEL", "gpt-6-astra")
 VLM_BASE_URL = os.environ.get("HARNESS_VLM_BASE_URL") or None
 VLM_API_KEY = os.environ.get("HARNESS_VLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
 VLM_REASONING = os.environ.get("HARNESS_VLM_REASONING", "medium")
-VLM_API = os.environ.get("HARNESS_VLM_API", "responses")        # responses (reasoning + tools) | chat
+VLM_API = os.environ.get("HARNESS_VLM_API", "responses")        # responses | chat | codex (ChatGPT login)
 # 60 s: the slowest of 210 replies on 2026-09-26 took 11 s, and a stalled request is retried sooner.
 VLM_TIMEOUT = float(os.environ.get("HARNESS_VLM_TIMEOUT", "60"))
 IMAGE_MAX_EDGE = int(os.environ.get("HARNESS_IMAGE_MAX_EDGE", "768"))
@@ -119,5 +119,7 @@ def load_base_to_base():
 
 
 def require_vlm_key():
+    if VLM_API == "codex":
+        return  # App Server checks for ChatGPT authentication before any model call.
     if not VLM_API_KEY:
         raise SystemExit("HARNESS_VLM_API_KEY (or OPENAI_API_KEY) is not set")

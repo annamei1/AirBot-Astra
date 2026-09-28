@@ -33,8 +33,8 @@ from PIL import Image
 from typing import Optional, Dict, Tuple, List
 
 # ===== SAM3 imports (after path setup) =====
-from sam3.model_builder import build_sam3_image_model
 from sam3.model.sam3_image_processor import Sam3Processor
+from perception.sam3_cpu import build_image_model, select_device
 
 
 # ==================== Top Surface Extraction ====================
@@ -332,24 +332,25 @@ class SAM3Segmenter:
         return cls._instance
     
     def __init__(self, checkpoint_path: str, confidence: float = 0.5):
-        if self._initialized:
-            return
-        
-        print("[SAM3] Loading model...")
-        
-        self.model = build_sam3_image_model(checkpoint_path=checkpoint_path)
-        self.processor = Sam3Processor(
-            self.model, 
-            resolution=1008, 
-            confidence_threshold=confidence
-        )
-        self._segment_lock = threading.Lock()
-        
-        torch.cuda.empty_cache()
-        gc.collect()
-        
-        self._initialized = True
-        print("[SAM3] Model loaded")
+        with self._lock:
+            if self._initialized:
+                return
+            self.device = select_device()
+            print(f"[SAM3] Loading model on {self.device}...")
+            self.model = build_image_model(checkpoint_path, self.device)
+            self.processor = Sam3Processor(
+                self.model, device=self.device, resolution=1008,
+                confidence_threshold=confidence
+            )
+            self._segment_lock = threading.Lock()
+            self._clear_cuda_cache()
+            gc.collect()
+            self._initialized = True
+            print(f"[SAM3] Model loaded on {self.device}")
+
+    def _clear_cuda_cache(self):
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
     
     def segment(self, img_bgr: np.ndarray, prompt: str) -> Optional[np.ndarray]:
         """
@@ -376,7 +377,7 @@ class SAM3Segmenter:
                 masks = out["masks"].cpu().numpy()
             
             # Clean up GPU memory
-            torch.cuda.empty_cache()
+            self._clear_cuda_cache()
             
             return masks
     
@@ -416,7 +417,7 @@ class SAM3Segmenter:
             out = self.processor.add_geometric_prompt(
                 [(x0 + x1) / 2 / w, (y0 + y1) / 2 / h, (x1 - x0) / w, (y1 - y0) / h], True, state)
             masks = out["masks"].cpu().numpy() if out.get("masks") is not None else None
-            torch.cuda.empty_cache()
+            self._clear_cuda_cache()
             return masks
 
     def segment_rgb(self, img_rgb: np.ndarray, prompt: str) -> Optional[np.ndarray]:
@@ -439,7 +440,7 @@ class SAM3Segmenter:
             if out["masks"] is not None:
                 masks = out["masks"].cpu().numpy()
             
-            torch.cuda.empty_cache()
+            self._clear_cuda_cache()
             return masks
     
     # ==================== Yaw Estimation Methods ====================

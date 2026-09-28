@@ -26,25 +26,33 @@ def main():
     args = ap.parse_args()
     config.require_vlm_key()
 
-    from openai import OpenAI
-    raw = OpenAI(api_key=config.VLM_API_KEY, base_url=config.VLM_BASE_URL, timeout=60)
+    if config.VLM_API == "codex":
+        from harness.codex_backend import AppServer
+        with AppServer(config.VLM_TIMEOUT) as server:
+            models = server.rpc("model/list", {})["data"]
+            ids = [m["model"] for m in models]
+            print(f"(1) Codex ChatGPT login OK — models: {ids}")
+            if args.model not in ids:
+                raise SystemExit(f"Configured model {args.model!r} is not available in Codex")
+    else:
+        from openai import OpenAI
+        raw = OpenAI(api_key=config.VLM_API_KEY, base_url=config.VLM_BASE_URL, timeout=60)
 
-    # (1) endpoint + model list
-    print(f"endpoint: {config.VLM_BASE_URL or 'https://api.openai.com/v1'}")
-    try:
-        ids = sorted(m.id for m in raw.models.list())
-        hits = [i for i in ids if "gpt-6" in i]
-        print(f"(1) models.list OK — {len(ids)} models; gpt-6*: {hits or 'none'}")
-        if args.model not in ids:
-            if hits:
-                print(f"    '{args.model}' is not in the list → using '{hits[0]}' for this run. "
-                      f"Put HARNESS_VLM_MODEL={hits[0]} in harness/.env")
-                args.model = hits[0]
-            else:
-                print(f"    WARNING: '{args.model}' is not in the list and no gpt-6* model is visible to this key")
-    except Exception as e:  # noqa: BLE001
-        print(f"(1) models.list failed: {str(e)[:300]}\n    (some gateways block it — continuing)")
-
+        # (1) endpoint + model list
+        print(f"endpoint: {config.VLM_BASE_URL or 'https://api.openai.com/v1'}")
+        try:
+            ids = sorted(m.id for m in raw.models.list())
+            hits = [i for i in ids if "gpt-6" in i]
+            print(f"(1) models.list OK — {len(ids)} models; gpt-6*: {hits or 'none'}")
+            if args.model not in ids:
+                if hits:
+                    print(f"    '{args.model}' is not in the list → using '{hits[0]}' for this run. "
+                          f"Put HARNESS_VLM_MODEL={hits[0]} in harness/.env")
+                    args.model = hits[0]
+                else:
+                    print(f"    WARNING: '{args.model}' is not in the list and no gpt-6* model is visible to this key")
+        except Exception as e:  # noqa: BLE001
+            print(f"(1) models.list failed: {str(e)[:300]}\n    (some gateways block it — continuing)")
     client = VLMClient(model=args.model, api_key=config.VLM_API_KEY, base_url=config.VLM_BASE_URL,
                        reasoning_effort=config.VLM_REASONING, timeout=config.VLM_TIMEOUT, api=config.VLM_API)
 

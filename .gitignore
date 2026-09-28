@@ -1,4 +1,6 @@
 __pycache__/
+.venv/
+.setup/
 *.pyc
 # run output
 harness/logs/

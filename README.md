@@ -95,15 +95,54 @@ hf download <your-hf-repo> sam3.pt --local-dir ~/sam3-main/checkpoint     # TODO
 If SAM3 lives somewhere else, `export SAM3_HOME=/path/to/sam3`. SAM3 is released by Meta under the
 SAM License; its terms apply to the weights wherever you download them from.
 
-### 5. Configure the model API
+SAM3 automatically uses CPU when CUDA is unavailable. Set `SAM3_DEVICE=cpu` to force CPU or
+`SAM3_DEVICE=cuda` to require CUDA; the default is `auto`. CPU inference uses four PyTorch threads
+by default (`SAM3_CPU_THREADS` overrides this process-wide setting). Compatibility fixes are tested
+with SAM3 commit `2345a4ad109ac29c569da749c91d84f10dc08c40` and PyTorch 2.7.1. On the local ARM64
+machine, a 1008-resolution image takes about 20 seconds to segment and needs roughly 7 GiB RAM.
+Use this for slow experiments; it is not real-time perception.
+
+Test the same segmenter used by the harness without connecting hardware:
+
+```bash
+python -m harness.scripts.check_sam3 path/to/image.jpg --prompt child
+python -m harness.scripts.check_sam3 path/to/image.jpg --box 430 200 700 680
+```
+
+### 5. Configure the model backend
 
 The harness reads its model settings from environment variables. Put them in your shell profile or in
 `harness/.env` (one `KEY=value` per line; the file is git-ignored). **Never commit a key.**
+
+Codex with a ChatGPT subscription (no API key):
+
+```bash
+codex login                               # sign in with ChatGPT; skip if already logged in
+codex login status
+export HARNESS_VLM_API=codex
+export HARNESS_VLM_MODEL=gpt-6-astra
+export HARNESS_VLM_REASONING=medium
+export HARNESS_VLM_TIMEOUT=120
+```
+
+Requires the Codex CLI on `PATH` (tested with 0.158.0); `HARNESS_CODEX_BIN` can specify another
+executable. The adapter uses the official [Codex App Server](https://learn.chatgpt.com/docs/app-server)
+and its existing managed ChatGPT login. Subscription usage limits apply. Codex must be able to write
+its normal runtime state under `~/.codex`. No API key or gateway URL is used by this backend, and it
+refuses API-key authentication instead of falling back to API billing.
+
+Each decision sends the current transcript and images in a new ephemeral thread. Structured JSON
+decisions become ordinary harness tool calls; the harness remains responsible for execution. Session
+image compaction still applies, but hidden reasoning is not retained between decisions. Agent tools,
+plugins, and environment access are disabled. A failed or timed-out decision raises an error without
+automatic retry. Validate text, images, and fake tools with `check_api` and `smoke_vlm` below before
+running a hardware episode.
 
 OpenAI API:
 
 ```bash
 export HARNESS_VLM_API_KEY=sk-...            # your OpenAI key
+export HARNESS_VLM_API=responses
 export HARNESS_VLM_MODEL=gpt-6-astra
 export HARNESS_VLM_REASONING=medium
 ```
@@ -118,17 +157,18 @@ export HARNESS_VLM_MODEL=openai/gpt-6-astra
 export HARNESS_VLM_REASONING=medium
 ```
 
-When switching back from OpenRouter to OpenAI, `unset HARNESS_VLM_BASE_URL HARNESS_VLM_API` — a
+When switching back to the OpenAI API, `unset HARNESS_VLM_BASE_URL` and set `HARNESS_VLM_API=responses` — a
 commented-out line in your profile does not remove a variable that is already exported. The first line
-the harness prints shows what it uses, e.g. `[VLM] model=gpt-6-astra api=responses base_url=api.openai.com`.
+the harness prints shows what it uses, e.g. `[VLM] model=gpt-6-astra api=responses endpoint=api.openai.com`.
 
 Optional: `HARNESS_VLM_TIMEOUT` (seconds, default 60), `HARNESS_MAX_STEPS` (default 60),
 `HARNESS_IMAGE_MAX_EDGE` (default 768).
 
-Check the key, the model id, images and tool calls, without the robot:
+Check authentication, the model id, images and tool calls, without the robot:
 
 ```bash
 python -m harness.scripts.check_api
+python -m harness.scripts.smoke_vlm
 ```
 
 ### 6. Configure your rig
@@ -267,15 +307,39 @@ hf download <your-hf-repo> sam3.pt --local-dir ~/sam3-main/checkpoint     # TODO
 如果 SAM3 装在别处，设置 `export SAM3_HOME=/path/to/sam3`。SAM3 由 Meta 以 SAM License 发布，
 无论从哪里下载，权重都受该许可证约束。
 
+没有 CUDA 时，SAM3 自动使用 CPU；可用 `SAM3_DEVICE=cpu` 强制 CPU，或设为 `cuda` 强制 CUDA。
+CPU 默认使用 4 个 PyTorch 线程，可通过 `SAM3_CPU_THREADS` 修改（影响整个进程）。
+已验证的 SAM3 提交为 `2345a4ad109ac29c569da749c91d84f10dc08c40`，PyTorch 版本为 2.7.1。
+本机 ARM64 上每张图像分割约需 20 秒、约 7 GiB 内存，适合慢速实验。
+可用 `python -m harness.scripts.check_sam3 path/to/image.jpg --prompt child` 测试，不连接机器人。
+
 ### 5. 配置模型接口
 
 harness 从环境变量读取模型设置。可以写进 shell 配置文件，也可以写进 `harness/.env`
 （每行一个 `KEY=value`，该文件已被 git 忽略）。**永远不要把密钥提交到仓库。**
 
+Codex / ChatGPT 订阅（无需 API 密钥）：
+
+```bash
+codex login                               # 使用 ChatGPT 登录，已登录则跳过
+codex login status
+export HARNESS_VLM_API=codex
+export HARNESS_VLM_MODEL=gpt-6-astra
+export HARNESS_VLM_REASONING=medium
+export HARNESS_VLM_TIMEOUT=120
+```
+
+需要 PATH 中有 Codex CLI（已测试 0.158.0），也可通过 `HARNESS_CODEX_BIN` 指定路径。
+后端使用 App Server 的 ChatGPT 登录，受订阅额度限制，不会回退到 API 密钥计费。
+每次决策发送当前完整记录和图像；结构化输出由现有 harness 分派为工具调用。
+Codex 的环境访问和代理工具已禁用；跨轮次不保留隐藏推理，超时或失败不会自动重试。
+先运行 `check_api` 和 `smoke_vlm` 验证，均不连接机器人。
+
 OpenAI 官方接口：
 
 ```bash
 export HARNESS_VLM_API_KEY=sk-...            # 你的 OpenAI 密钥
+export HARNESS_VLM_API=responses
 export HARNESS_VLM_MODEL=gpt-6-astra
 export HARNESS_VLM_REASONING=medium
 ```
@@ -290,9 +354,9 @@ export HARNESS_VLM_MODEL=openai/gpt-6-astra
 export HARNESS_VLM_REASONING=medium
 ```
 
-从 OpenRouter 换回 OpenAI 时，要执行 `unset HARNESS_VLM_BASE_URL HARNESS_VLM_API`：
+换回 OpenAI API 时，要执行 `unset HARNESS_VLM_BASE_URL` 并设置 `HARNESS_VLM_API=responses`：
 在配置文件里把某行注释掉，并不会清除已经导出的变量。harness 启动时打印的第一行会显示实际使用的配置，
-例如 `[VLM] model=gpt-6-astra api=responses base_url=api.openai.com`。
+例如 `[VLM] model=gpt-6-astra api=responses endpoint=api.openai.com`。
 
 可选：`HARNESS_VLM_TIMEOUT`（秒，默认 60）、`HARNESS_MAX_STEPS`（默认 60）、
 `HARNESS_IMAGE_MAX_EDGE`（默认 768）。

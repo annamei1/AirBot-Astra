@@ -1,7 +1,8 @@
 """
 Multimodal VLM client with function calling.
 
-Two backends, selected by HARNESS_VLM_API (default "responses"):
+Backends selected by HARNESS_VLM_API (default "responses"):
+  codex     : Codex App Server with ChatGPT login; structured decisions become harness tool calls.
   responses : OpenAI /v1/responses — reasoning + function tools together (required for gpt-6-astra).
               Turns are chained with previous_response_id, so each call uploads only the NEW items
               (tool outputs, new images); the server keeps the reasoning context.
@@ -223,13 +224,14 @@ class _Waiting:
 
 
 class VLMClient:
-    def __init__(self, model: str, api_key: str, base_url: Optional[str] = None,
+    def __init__(self, model: str, api_key: str = "", base_url: Optional[str] = None,
                  reasoning_effort: Optional[str] = "medium", timeout: float = 60.0,
                  temperature: Optional[float] = None, max_retries: int = 2, verbose: bool = True,
                  api: str = "responses"):
-        from openai import OpenAI
         self.model = model
-        self.api = api if api in ("responses", "chat") else "responses"
+        if api not in ("responses", "chat", "codex"):
+            raise ValueError(f"Unknown VLM backend: {api}")
+        self.api = api
         self.reasoning_effort = reasoning_effort or None
         self.temperature = temperature
         self.max_retries = max_retries
@@ -244,9 +246,14 @@ class VLMClient:
         kwargs: Dict[str, Any] = {"api_key": api_key, "timeout": timeout, "max_retries": 0}
         if base_url:
             kwargs["base_url"] = base_url
-        self._client = OpenAI(**kwargs)
+        if api == "codex":
+            self._client = None
+        else:
+            from openai import OpenAI
+            self._client = OpenAI(**kwargs)
         if verbose:
-            print(f"[VLM] model={model} api={self.api} base_url={base_url or 'api.openai.com'} "
+            endpoint = 'ChatGPT subscription' if api == 'codex' else (base_url or 'api.openai.com')
+            print(f"[VLM] model={model} api={self.api} endpoint={endpoint} "
                   f"reasoning={self.reasoning_effort}")
 
     # ---------------- public ----------------
@@ -256,6 +263,14 @@ class VLMClient:
         """One model call. Does NOT append to the session (the caller appends the Reply)."""
         self._stalled = False
         try:
+            if self.api == "codex":
+                from harness.codex_backend import step
+                try:
+                    with _Waiting("Codex", enabled=self.verbose):
+                        return step(self, session, tools, tool_choice)
+                except Exception as e:
+                    self._note_error(e)
+                    raise
             if self.api == "responses":
                 return self._step_responses(session, tools, tool_choice)
             return self._step_chat(session, tools, tool_choice)
