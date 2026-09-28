@@ -1,0 +1,30 @@
+{
+  "name": "AirBot G2, stock fingers",
+  "gripper_type": "parallel two-finger",
+  "max_opening_mm": 70.0,
+  "fingers_identical": true,
+  "finger_length_mm": 91.5,
+  "width_across_closing_mm": {
+    "max": 60.5,
+    "at_mm_from_mount": 13.7,
+    "mid_length": 40.0,
+    "tip": 5.8
+  },
+  "thickness_along_closing_mm": {
+    "max": 23.5,
+    "mid_length": 16.5,
+    "tip": 3.4
+  },
+  "tool": {
+    "base": "airbot_g2",
+    "reported_frame": "URDF end_link (G2 grasp point), 151.1 mm ahead of the flange",
+    "finger_tip_forward_of_flange_m": 0.156,
+    "grasp_point_behind_tip_m": 0.0049,
+    "tool_offset_in_reported_frame_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "note": "where the tool point sits relative to the point the SDK reports, in the SDK's end frame; zero for the stock fingers"
+  }
+}

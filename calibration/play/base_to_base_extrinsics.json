@@ -1,0 +1,68 @@
+{
+  "translation": [
+    -0.027731593085830633,
+    0.4977871439519525,
+    0.001958103757363482
+  ],
+  "rotation_matrix": [
+    [
+      0.9975110551433498,
+      -0.06770103373298131,
+      0.019704438542788093
+    ],
+    [
+      0.06820669779454305,
+      0.9973262496201639,
+      -0.026233531873202272
+    ],
+    [
+      -0.017875716566466953,
+      0.02751221274387379,
+      0.9994616235289733
+    ]
+  ],
+  "quaternion": [
+    0.013446021662676262,
+    0.009401741166411017,
+    0.03400117191163961,
+    0.999287111931862
+  ],
+  "euler_xyz_deg": [
+    1.5767846108819161,
+    1.024257668731533,
+    3.911618331914738
+  ],
+  "frame_from": "left_arm_base",
+  "frame_to": "right_arm_base",
+  "translation_std": [
+    0.0053995800826901336,
+    0.003918627312912767,
+    0.006783707880169802
+  ],
+  "num_samples_total": 24,
+  "num_samples_used": 24,
+  "left_wrist_camera_serial": "218622271178",
+  "solved_by": "joint_cal.py",
+  "board_squares": [
+    10,
+    7
+  ],
+  "num_samples": 36,
+  "distinct_right_poses": 16,
+  "solved_at": "2026-09-18 06:36:37",
+  "loop_closure_mm": {
+    "head_vs_right": [
+      9.36,
+      10.25
+    ],
+    "left_vs_right": [
+      8.28,
+      12.53
+    ],
+    "head_vs_left": [
+      8.98,
+      12.57
+    ],
+    "note": "mean and worst distance between where two chains put the same board"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "arm": {
+    "port": 50050,
+    "home_joint": [
+      -0.0612,
+      -1.055,
+      0.8829,
+      -1.2343,
+      1.0351,
+      0.7597
+    ],
+    "zero_joint": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "cameras": {
+    "wrist_serial": "230422271433",
+    "head_serial": "230422271972",
+    "d405_depth_raw_to_mm": 0.1,
+    "head_zoom": 1.0,
+    "wrist_zoom": 1.0,
+    "width": 640,
+    "height": 480,
+    "fps": 30
+  },
+  "calibration": {
+    "dir": "calibration/play",
+    "hand_eye_extrinsics": "hand_eye_extrinsics_right.json",
+    "head_camera_extrinsics": "head_camera_extrinsics.json"
+  },
+  "workspace": {
+    "bounds_min": [
+      0.15,
+      -0.22,
+      -0.065
+    ],
+    "bounds_max": [
+      0.5,
+      0.35,
+      0.45
+    ]
+  },
+  "grasp": {
+    "hover_height": 0.12,
+    "gripper_release_width": 0.3,
+    "grasp_z": -0.06,
+    "table_surface_z": -0.066
+  },
+  "sam3": {
+    "checkpoint": "$SAM3_HOME/checkpoint/sam3.pt",
+    "confidence": 0.4
+  },
+  "timing": {
+    "move_wait_sec": 1.5,
+    "gripper_close_wait_sec": 0.8,
+    "gripper_open_wait_sec": 0.5
+  },
+  "second_arm": {
+    "port": 50052,
+    "wrist_serial": "218622271178"
+  }
+}
