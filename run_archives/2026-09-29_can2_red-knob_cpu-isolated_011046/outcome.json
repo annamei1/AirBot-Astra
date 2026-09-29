@@ -1,0 +1,43 @@
+{
+  "success": false,
+  "summary": "Unable to verify a grasp after three attempts. The knob was not moved along the slot; the arm returned home with the gripper open.",
+  "plan": [
+    {
+      "index": 0,
+      "step": "Make a third and final grasp attempt slightly lower at the measured knob position.",
+      "status": "failed",
+      "evidence": "Third attempt closed fully to 0.4 mm with no grasp detected."
+    },
+    {
+      "index": 1,
+      "step": "Guide the grasped knob along the measured winding slot to the far endpoint.",
+      "status": "skipped",
+      "evidence": "Cannot slide the knob without a verified grasp; three grasp attempts exhausted."
+    },
+    {
+      "index": 2,
+      "step": "Release, withdraw, verify the outcome, and return home.",
+      "status": "done",
+      "evidence": "Home returned ok with open gripper and holding null; fresh wrist image shows the red knob still at the starting end, not the opposite endpoint."
+    }
+  ],
+  "record_complete": true,
+  "episode": "20260929-011046",
+  "instruction": "move the red circle knob along the swiggling trajectory to the other end of the green panel",
+  "model_calls": 21,
+  "tool_calls": 28,
+  "elapsed_s": 624.5,
+  "images_sent": 38,
+  "log": "/home/annamei/AirBot-Astra/harness/logs/20260929-011046",
+  "arm_speed": "slow",
+  "speed_params": {
+    "right": {
+      "servo_node.moveit_servo.scale.linear": 0.05,
+      "servo_node.moveit_servo.scale.rotational": 0.05,
+      "servo_node.moveit_servo.scale.joint": 0.05,
+      "sdk_server.max_velocity_scaling_factor": 0.1,
+      "sdk_server.max_acceleration_scaling_factor": 0.02
+    }
+  },
+  "gripper": "AirBot G2, stock fingers"
+}
