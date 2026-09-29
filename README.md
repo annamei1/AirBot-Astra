@@ -191,6 +191,13 @@ python -m harness.scripts.smoke_vlm
 
 ### 6. Configure your rig
 
+The local USB 2 setup uses 640×480 color and depth at **5 FPS** for all cameras
+(`cameras.fps` in `config/play_config.json`). The harness passes this setting to
+every camera; image resolution and calibration remain unchanged. Camera startup
+uses retained device handles to avoid RSUSB discovery conflicts. This reduces USB
+traffic; it does not repair VirtualBox controller errors. Check simultaneous
+capture before a robot run.
+
 - `config/play_config.json`: arm ports, camera serial numbers (`cameras.head_serial`,
   `cameras.wrist_serial`, `second_arm.wrist_serial`), workspace bounds, zero and home joint poses.
 - `calibration/play/`: camera and arm calibration. **The files shipped here are the calibration of our

@@ -1,6 +1,6 @@
 {
   "arm": {
-    "port": 50050,
+    "port": 50052,
     "home_joint": [
       -0.0612,
       -1.055,
@@ -26,7 +26,7 @@
     "wrist_zoom": 1.0,
     "width": 640,
     "height": 480,
-    "fps": 30
+    "fps": 5
   },
   "calibration": {
     "dir": "calibration/play",
@@ -62,7 +62,7 @@
     "gripper_open_wait_sec": 0.5
   },
   "second_arm": {
-    "port": 50052,
+    "port": 50050,
     "wrist_serial": "218622271178"
   }
 }

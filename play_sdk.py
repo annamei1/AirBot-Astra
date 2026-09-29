@@ -23,13 +23,23 @@ class RealsenseCamera:
     Returns: (color_bgr, depth_u16)
     """
 
+    _context = None
+    _devices = None
+
     def __init__(self, serial_no=None, width=640, height=480, fps=30):
         self.pipeline = None
         self.align = None
         self._intrinsics = None
 
-        ctx = rs.context()
-        devices = ctx.query_devices()
+        # Share device ownership across pipelines. Independent contexts can try
+        # to reopen a camera already streaming through the RSUSB backend.
+        if RealsenseCamera._context is None:
+            RealsenseCamera._context = rs.context()
+        ctx = RealsenseCamera._context
+        if RealsenseCamera._devices is None:
+            # Materialize and retain handles before any camera starts streaming.
+            RealsenseCamera._devices = list(ctx.query_devices())
+        devices = RealsenseCamera._devices
         if len(devices) == 0:
             logger.error("No Realsense device detected")
             return
@@ -39,9 +49,15 @@ class RealsenseCamera:
             name = dev.get_info(rs.camera_info.name)
             logger.info(f"Found device {i}: {name} (SN: {sn})")
 
-        self.pipeline = rs.pipeline()
+        self.pipeline = rs.pipeline(ctx)
         config = rs.config()
         if serial_no:
+            device = next((d for d in devices
+                           if d.get_info(rs.camera_info.serial_number) == serial_no), None)
+            if device is None:
+                raise RuntimeError(f"RealSense camera {serial_no} is not connected")
+            # Avoid reopening other active RSUSB devices during serial discovery.
+            self.pipeline.set_device(device)
             config.enable_device(serial_no)
 
         config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
@@ -60,7 +76,8 @@ class RealsenseCamera:
         }
 
         logger.info("Waiting for Realsense to stabilize...")
-        for _ in range(60):
+        # Keep the original two-second warmup at the configured frame rate.
+        for _ in range(max(1, 2 * fps)):
             self.pipeline.wait_for_frames()
         logger.info(f"Realsense ready (fx={intr.fx:.1f}, fy={intr.fy:.1f})")
 
