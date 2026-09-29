@@ -16,6 +16,7 @@ from typing import Optional
 
 from play.config import GRIPPER_OPEN_WAIT_SEC, HOME_JOINT, ZERO_JOINT
 from robot.play_env import PlayRobotEnv
+from robot.feedback_wait import wait_for_target
 
 REST_POSES = {"zero": ZERO_JOINT, "home": HOME_JOINT}
 
@@ -56,9 +57,12 @@ class HarnessEnv(PlayRobotEnv):
             return
         joints = REST_POSES[self._rest]
         print(f"[harness] moving to the '{self._rest}' rest pose")
-        self.robot.set_gripper(position=self.gripper_open_width)
-        time.sleep(GRIPPER_OPEN_WAIT_SEC)
-        self.robot.set_joint_positions(joints, blocking=True)
+        if not self.open_gripper():
+            raise RuntimeError('Rest aborted: gripper opening not confirmed')
+        if not self.robot.set_joint_positions(joints, blocking=True):
+            raise RuntimeError('Rest command failed; execution state is uncertain')
+        if not wait_for_target(self.robot.get_joint_q, joints, 0.01745):
+            raise RuntimeError('Rest joint positions not confirmed within 15 s')
         # The second arm has no convenience method of its own; drive its handle directly. Zero is
         # defined the same way for both arms, while the tuned 'home' pose was measured against the
         # first arm's mount and means nothing on the other one.

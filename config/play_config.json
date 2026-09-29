@@ -47,7 +47,8 @@
   },
   "grasp": {
     "hover_height": 0.12,
-    "gripper_release_width": 0.3,
+    "gripper_release_width": 0.07,
+    "gripper_max_width": 0.07,
     "grasp_z": -0.06,
     "table_surface_z": -0.066
   },

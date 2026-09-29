@@ -566,7 +566,7 @@ class Skills:
         with ExitStack() as stack:
             for name in self.arm_names:
                 stack.enter_context(self._acting(name))
-            self.env.reset_position()
+            return self.env.reset_position()
 
     def _resolve(self, object_id: Optional[str], xyz: Optional[List[float]], what: str,
                  given_yaw_deg: Optional[float] = None
@@ -628,10 +628,12 @@ class Skills:
         if (e := self._known_arm(arm)):
             return ToolResult.error(e)
         if arm in (None, WORLD_ARM):
-            self._go_home()
+            ok = self._go_home()
         else:
-            self._arm(arm).reset_position()
+            ok = self._arm(arm).reset_position()
             self._set_holding(None, arm=arm)
+        if not ok:
+            return ToolResult.error('Home completion was not confirmed; command may still be pending.')
         return self._result({"ok": True, "state": self._state(arm)}, "with the arm at home.", arm)
 
     # ============================================================ Tier-0 primitives

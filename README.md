@@ -102,6 +102,24 @@ with SAM3 commit `2345a4ad109ac29c569da749c91d84f10dc08c40` and PyTorch 2.7.1. O
 machine, a 1008-resolution image takes about 20 seconds to segment and needs roughly 7 GiB RAM.
 Use this for slow experiments; it is not real-time perception.
 
+For CPU perception alongside a robot runtime, launch with an explicit, separate CPU set:
+
+```bash
+# Example for the local 10-vCPU machine and existing runtime containers.
+# These settings persist on those containers; reapply after recreating them.
+docker update --cpuset-cpus 0-1 airbot-motion-check
+docker update --cpuset-cpus 2-3 airbot-second-arm
+HARNESS_CPUSET=4-9 bash harness/scripts/run_cpu_limited.sh --start home --arm-speed slow "your task"
+```
+
+The launcher defaults to two SAM3/OpenMP threads, one OpenBLAS thread, and passive OpenMP
+waiting. Assign the runtime containers non-overlapping CPUs separately (`docker update
+--cpuset-cpus ...`); CPU numbers are machine-specific, and VM host scheduling can still cause
+delays. `--python` runs a Python script or module under the same limits for no-motion testing.
+On the stock G2 configuration, opening is capped at 70 mm and must be confirmed by three
+feedback samples within 2 mm over a 15-second wait. Home verifies joint positions within
+one degree. A failed confirmation is not cancellation: a command may still execute later.
+
 Test the same segmenter used by the harness without connecting hardware:
 
 ```bash

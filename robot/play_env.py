@@ -21,6 +21,7 @@ from typing import Optional, Tuple, Dict, List, Any, Callable
 from scipy.spatial.transform import Rotation as R
 
 from play_sdk import PlayRealRobot
+from robot.feedback_wait import wait_for_target
 from play.config import (
     HOME_JOINT, ARM_PORT,
     SECOND_ARM_PORT, SECOND_WRIST_CAMERA_SERIAL,
@@ -384,8 +385,16 @@ class PlayRobotEnv:
         position = self.gripper_open_width if gap is None else gap
 
         try:
-            self.robot.set_gripper(position=position)
-            time.sleep(GRIPPER_OPEN_WAIT_SEC)
+            maximum = self.config['grasp'].get('gripper_max_width')
+            if maximum is not None:
+                position = min(position, float(maximum))
+            if not np.isfinite(position) or position < 0:
+                raise ValueError('Invalid gripper opening')
+            if not self.robot.set_gripper(position=position):
+                return False
+            if not wait_for_target(self.robot.left.get_eef_pos, [position], 0.002):
+                print('[PlayRobotEnv] Gripper opening not confirmed within 15 s; command may still be pending')
+                return False
             return True
         except Exception as e:
             print(f"[PlayRobotEnv] Gripper open failed: {e}")
