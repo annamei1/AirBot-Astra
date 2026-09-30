@@ -1,0 +1,1 @@
+Find the position of center of mass of the black block. Plan the experiment with the given setup, then execute the experiment. An approximate interval is fine.

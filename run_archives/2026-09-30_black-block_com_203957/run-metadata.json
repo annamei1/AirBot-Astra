@@ -1,0 +1,21 @@
+{
+  "episode": "20260930-203957",
+  "archive_base_commit": "2a109cfebf2eb2a90d3f9eaf2e0521daae6044ad",
+  "source_log": "harness/logs/20260930-203957",
+  "source_console": "hardware_checks/com_experiment/console.log",
+  "termination": "Harness reported success and exited with status 0.",
+  "working_arm_home_verified": true,
+  "second_arm_home_verified": false,
+  "cleanup_note": "One second-arm move-group timeout was logged during home; subsequent cleanup completed without another logged error.",
+  "source_snapshot_note": "Runtime source patch captured at archive time, relative to archive_base_commit.",
+  "experimental_result": {
+    "longitudinal_com_world_y_m": [
+      0.17,
+      0.203
+    ],
+    "reference_pose": "Balanced experimental pose, before return to mat",
+    "transverse_com_localized": false,
+    "vertical_com_localized": false,
+    "balance_placements": 1
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "success": true,
+  "summary": "Executed a balance experiment on the red support. The fully released block remained stable, giving an approximate longitudinal COM interval y=0.170–0.203 m in the experimental pose, including measurement uncertainty. Transverse and vertical COM were not localized beyond the block's bounds. Block returned safely to the table and working arm verified home; all planned steps complete.",
+  "plan": [
+    {
+      "index": 0,
+      "step": "Locate and measure the black block and red support, including their edges and support width.",
+      "status": "done",
+      "evidence": "Both objects identified and edges measured: black block approximately 119 × 53 mm; red support approximately 54 mm long and 13–19 mm wide, with edge-depth uncertainty."
+    },
+    {
+      "index": 1,
+      "step": "Grasp the block across its short dimension, verify the hold, and lift clear of the surface.",
+      "status": "done",
+      "evidence": "Fresh head and wrist views show the block lifted with the fingers; gap is 52.6 mm and grip effort remains 5.51 versus 6.19 at grasp."
+    },
+    {
+      "index": 2,
+      "step": "Lower the block across the red support using contact sensing, release completely, and observe balance or tipping.",
+      "status": "done",
+      "evidence": "Block fully released; gripper withdrawn. Multiple subsequent views show both ends elevated and the block stationary on the red support."
+    },
+    {
+      "index": 3,
+      "step": "Repeat at adjusted support positions as needed to bracket the longitudinal center of mass; measure actual placements and account for support width and measurement uncertainty.",
+      "status": "done",
+      "evidence": "Stable balance brackets the longitudinal COM projection within the support footprint. Measured support y approximately 0.180–0.193 m; conservatively expand to 0.170–0.203 m for registration and edge uncertainty. Transverse and vertical COM remain unmeasured; no further tipping trials required for this approximate interval."
+    },
+    {
+      "index": 4,
+      "step": "Set the block down safely, return the working arm home, and report the measured center-of-mass interval with bounds on unmeasured dimensions.",
+      "status": "done",
+      "evidence": "Fresh home images show the released block resting on the table and the working arm clear; home succeeded with holding=null. Reported longitudinal COM interval y=0.170–0.203 m applies to the balanced experimental pose, not its returned position. Transverse and vertical COM are constrained only to lie within the block; they were not experimentally localized."
+    }
+  ],
+  "record_complete": true,
+  "episode": "20260930-203957",
+  "instruction": "Find the position of center of mass of the black block. Plan the experiment with the given setup, then execute the experiment. An approximate interval is fine.",
+  "model_calls": 36,
+  "tool_calls": 44,
+  "elapsed_s": 860.1,
+  "images_sent": 67,
+  "log": "/home/annamei/AirBot-Astra/harness/logs/20260930-203957",
+  "arm_speed": "slow",
+  "speed_params": {
+    "right": {
+      "servo_node.moveit_servo.scale.linear": 0.05,
+      "servo_node.moveit_servo.scale.rotational": 0.05,
+      "servo_node.moveit_servo.scale.joint": 0.05,
+      "sdk_server.max_velocity_scaling_factor": 0.1,
+      "sdk_server.max_acceleration_scaling_factor": 0.02
+    },
+    "left": {
+      "servo_node.moveit_servo.scale.linear": 0.05,
+      "servo_node.moveit_servo.scale.rotational": 0.05,
+      "servo_node.moveit_servo.scale.joint": 0.05,
+      "sdk_server.max_velocity_scaling_factor": 0.1,
+      "sdk_server.max_acceleration_scaling_factor": 0.02
+    }
+  },
+  "gripper": "AirBot G2, stock fingers"
+}
