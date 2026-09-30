@@ -1,0 +1,9 @@
+{
+  "episode": "20260930-193006",
+  "archive_base_commit": "b6dad9c8c8008a5548be0d3eea295d3133183555",
+  "termination": "Aborted by user; console records server disconnection and failed cleanup.",
+  "home_verified": false,
+  "source_log": "harness/logs/20260930-193006",
+  "source_console": "hardware_checks/taped_boxes_restart_console.log",
+  "source_snapshot_note": "Patch captured at archive time; includes subsequent visual verification prompt change."
+}

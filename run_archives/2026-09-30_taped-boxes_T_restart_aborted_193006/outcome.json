@@ -1,0 +1,23 @@
+{
+  "success": false,
+  "summary": "aborted by user",
+  "record_complete": true,
+  "episode": "20260930-193006",
+  "instruction": "There are two black boxes in front of you, each of them has tapes on four edges. Put one of the boxes standing vertically, and the other horizontally on top of it. In the final position, all taped edges on the two boxes should remain parallel, which means it should look like a standing fattened letter T.",
+  "model_calls": 43,
+  "tool_calls": 51,
+  "elapsed_s": 893.4,
+  "images_sent": 66,
+  "log": "/home/annamei/AirBot-Astra/harness/logs/20260930-193006",
+  "arm_speed": "slow",
+  "speed_params": {
+    "right": {
+      "servo_node.moveit_servo.scale.linear": 0.05,
+      "servo_node.moveit_servo.scale.rotational": 0.05,
+      "servo_node.moveit_servo.scale.joint": 0.05,
+      "sdk_server.max_velocity_scaling_factor": 0.1,
+      "sdk_server.max_acceleration_scaling_factor": 0.02
+    }
+  },
+  "gripper": "AirBot G2, stock fingers"
+}
