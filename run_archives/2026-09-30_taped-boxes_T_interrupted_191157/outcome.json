@@ -1,0 +1,18 @@
+{
+  "success": false,
+  "record_complete": false,
+  "summary": "the episode did not end normally: the process stopped before done() or the step limit",
+  "episode": "20260930-191157",
+  "instruction": "There are two black boxes in front of you, each of them has tapes on four edges. Put one of the boxes standing vertically, and the other horizontally on top of it. In the final position, all taped edges on the two boxes should remain parallel, which means it should look like a standing fattened letter T.",
+  "log": "/home/annamei/AirBot-Astra/harness/logs/20260930-191157",
+  "arm_speed": "slow",
+  "speed_params": {
+    "right": {
+      "servo_node.moveit_servo.scale.linear": 0.05,
+      "servo_node.moveit_servo.scale.rotational": 0.05,
+      "servo_node.moveit_servo.scale.joint": 0.05,
+      "sdk_server.max_velocity_scaling_factor": 0.1,
+      "sdk_server.max_acceleration_scaling_factor": 0.02
+    }
+  }
+}

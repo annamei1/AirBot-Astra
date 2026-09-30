@@ -1,0 +1,169 @@
+diff --git a/README.md b/README.md
+index e45ab4e..4839d61 100644
+--- a/README.md
++++ b/README.md
+@@ -179,7 +179,7 @@ When switching back to the OpenAI API, `unset HARNESS_VLM_BASE_URL` and set `HAR
+ commented-out line in your profile does not remove a variable that is already exported. The first line
+ the harness prints shows what it uses, e.g. `[VLM] model=gpt-6-astra api=responses endpoint=api.openai.com`.
+ 
+-Optional: `HARNESS_VLM_TIMEOUT` (seconds, default 60), `HARNESS_MAX_STEPS` (default 60),
++Optional: `HARNESS_VLM_TIMEOUT` (seconds, default 60), `HARNESS_MAX_STEPS` (default 0: unlimited),
+ `HARNESS_IMAGE_MAX_EDGE` (default 768).
+ 
+ Check authentication, the model id, images and tool calls, without the robot:
+@@ -228,6 +228,12 @@ After every episode the arm opens its gripper and returns to its zero joint pose
+ window; `Ctrl+C` once stops after the current action and parks the arm, twice parks immediately, three
+ times quits and leaves the arm where it is.
+ 
++The agent keeps observing, replanning, and retrying until verified success or a human
++stops it. There is no three-attempt limit, and `done(success=false)` does not end an
++episode. An operator can explicitly cap a run with `--max-steps N`; `0` is unlimited.
++Motion guards and hardware/model errors still apply; this does not automatically
++restart a crashed process or retry uncertain motion commands.
++
+ Logs go to `harness/logs/<episode>/`: `session.jsonl` (the whole conversation with every tool result),
+ the images the model saw, the narrator's frames and account, and `outcome.json`. Only the latest episode
+ is kept unless you pass `--keep-logs 0`.
+@@ -383,7 +389,7 @@ export HARNESS_VLM_REASONING=medium
+ 在配置文件里把某行注释掉，并不会清除已经导出的变量。harness 启动时打印的第一行会显示实际使用的配置，
+ 例如 `[VLM] model=gpt-6-astra api=responses endpoint=api.openai.com`。
+ 
+-可选：`HARNESS_VLM_TIMEOUT`（秒，默认 60）、`HARNESS_MAX_STEPS`（默认 60）、
++可选：`HARNESS_VLM_TIMEOUT`（秒，默认 60）、`HARNESS_MAX_STEPS`（默认 0，不限步数）、
+ `HARNESS_IMAGE_MAX_EDGE`（默认 768）。
+ 
+ 不连机器人，先检查密钥、模型名、图像和工具调用是否正常：
+diff --git a/harness/agent.py b/harness/agent.py
+index 577ae3d..e84e122 100644
+--- a/harness/agent.py
++++ b/harness/agent.py
+@@ -124,8 +124,12 @@ and measure(u, v, camera=...) are what read the scene once you can see it.
+ 5. After each action read the returned state and EVERY image: the head image says where things are, the wrist
+    image says what is actually between the fingers. mark_step(i, "done", evidence) only for steps you verified
+    from a NEW observation; mark "failed" and replan if not.
+-{imgs}6. done(success, summary) when every planned step is verified (or, after at most 3 attempts on the same step,
+-   done(success=false) with what went wrong).
++{imgs}6. Keep working until the task is successful or a human stops the run. There is no attempt limit.
++   After a failure, inspect fresh observations, diagnose what changed, and replan a concrete recovery.
++   Do not abandon the task because several attempts failed, and do not repeat an unchanged failed action
++   blindly. If progress requires human intervention, explain what is needed and use wait()/look() while
++   waiting. Respect motion refusals and safety checks; never bypass them to keep trying.
++   Call done(success=true, summary) only when the task and every planned step are verified complete.
+ 
+ Rules:
+ - Labels for find() are 1–3 concrete English words describing appearance ("black block", "green bowl").
+@@ -208,7 +212,7 @@ Rules:
+ 
+ class Agent:
+     def __init__(self, client: VLMClient, registry: ToolRegistry, perception, system_prompt: str,
+-                 log_root: Path, max_steps: int = 40, max_edge: int = 768, abort=None, viz=None,
++                 log_root: Path, max_steps: int = 0, max_edge: int = 768, abort=None, viz=None,
+                  narrator=None, keep_logs: int = 1, keep_images: int = 1, compact_at: int = 30000,
+                  gripper: Optional[Dict[str, Any]] = None, run_meta: Optional[Dict[str, Any]] = None):
+         self.run_meta = dict(run_meta or {})   # rig settings every outcome carries, e.g. the arm speed profile
+@@ -233,6 +237,8 @@ class Agent:
+         self.perception = perception
+         self.system_prompt = system_prompt
+         self.log_root = Path(log_root)
++        if max_steps < 0:
++            raise ValueError("max_steps must be nonnegative (0 means unlimited)")
+         self.max_steps = max_steps
+         self.max_edge = max_edge
+         self.abort = abort                      # threading.Event or None
+@@ -251,7 +257,8 @@ class Agent:
+                             "evidence": {"type": "string", "description": "what you saw / measured"}},
+              "required": ["index", "status", "evidence"]}, self._mark_step)
+         registry.register(
+-            "done", "Finish the episode. Refused while planned steps are still pending.",
++            "done", "Finish after verified task success. Failure does not end the episode: inspect, "
++                    "recover, and continue until success or a human stops the run. All plan steps must be done.",
+             {"properties": {"success": {"type": "boolean"}, "summary": {"type": "string"}},
+              "required": ["success", "summary"]}, self._done)
+ 
+@@ -269,11 +276,17 @@ class Agent:
+         return ToolResult.json({"ok": True, "plan": self.plan, "pending": pending})
+ 
+     def _done(self, success: bool, summary: str) -> ToolResult:
+-        pending = [p for p in self.plan if p["status"] == "pending"]
+-        if success and pending:
+-            return ToolResult.error("plan still has pending steps: "
++        if not success:
++            return ToolResult.error("The task is not complete. Continue with fresh observations and a "
++                                    "revised approach; there is no attempt limit. If human intervention "
++                                    "is needed, explain why and wait. Only a human can stop an unfinished run.")
++        if not self.plan:
++            return ToolResult.error("Record and verify a plan before reporting task success.")
++        pending = [p for p in self.plan if p["status"] != "done"]
++        if pending:
++            return ToolResult.error("plan still has uncompleted steps: "
+                                     + "; ".join(f"[{p['index']}] {p['step']}" for p in pending)
+-                                    + ". Verify them with look()/find() and mark_step(), or done(success=false).")
++                                    + ". Replan as needed, verify with look()/find(), and mark_step().")
+         self._outcome = {"success": bool(success), "summary": summary, "plan": self.plan}
+         return ToolResult.json({"ok": True, "episode_finished": True}, done=True)
+ 
+@@ -325,7 +338,9 @@ class Agent:
+                      + "\n".join(c for c, _ in first.images),
+                      images=[im for _, im in first.images])
+ 
+-        for step in range(1, self.max_steps + 1):
++        step = 0
++        while self.max_steps == 0 or step < self.max_steps:
++            step += 1
+             if self.abort is not None and self.abort.is_set():
+                 self._outcome = {"success": False, "summary": "aborted by user"}
+                 break
+@@ -356,6 +371,10 @@ class Agent:
+             pending: List[Tuple[str, np.ndarray]] = []
+             finished = False
+             for call in reply.tool_calls:
++                if self.abort is not None and self.abort.is_set():
++                    self._outcome = {"success": False, "summary": "aborted by user"}
++                    finished = True
++                    break
+                 print(f"[tool #{step}] {call.name}({json.dumps(call.arguments, ensure_ascii=False)})")
+                 if self.viz:
+                     self.viz.set_busy(f"{call.name}({json.dumps(call.arguments, ensure_ascii=False)})")
+@@ -373,9 +392,10 @@ class Agent:
+                     pending.append((caption or f"Observation after {call.name}.", img))
+                 if result.done:
+                     finished = True
++                    break
+             left = self.max_steps - step
+             warning = ""
+-            if 0 < left <= WARN_STEPS_LEFT:
++            if self.max_steps > 0 and 0 < left <= WARN_STEPS_LEFT:
+                 # The 02:34 and 04:15 runs both finished the physical task and were scored failures
+                 # because the step limit arrived before done() did. The model cannot see the limit
+                 # unless it is told, so tell it while there is still room to act on it.
+diff --git a/harness/config.py b/harness/config.py
+index 6c87e7a..9101bdb 100644
+--- a/harness/config.py
++++ b/harness/config.py
+@@ -60,10 +60,8 @@ IMAGE_MAX_EDGE = int(os.environ.get("HARNESS_IMAGE_MAX_EDGE", "768"))
+ FINGERTIP_OFFSET_M = 0.0032
+ 
+ # ---- Agent ----
+-# Model calls per episode. 40 was not enough for two objects: the 04:15 run put both in the bowl and
+-# was still scored a failure because the limit arrived before done() did.
+-MAX_STEPS = int(os.environ.get("HARNESS_MAX_STEPS", "60"))
+-MAX_PICK_RETRIES = 3
++# Optional operator-specified model-call limit; ordinary runs have no attempt or step cap.
++MAX_STEPS = int(os.environ.get("HARNESS_MAX_STEPS", "0"))  # 0: until success or human stop
+ 
+ # ---- Robot (single source of truth: config/play_config.json via play.config) ----
+ from play.config import (  # noqa: E402
+diff --git a/harness/scripts/run_pickplace.py b/harness/scripts/run_pickplace.py
+index 8e9f0d4..d46f76d 100644
+--- a/harness/scripts/run_pickplace.py
++++ b/harness/scripts/run_pickplace.py
+@@ -48,7 +48,8 @@ def main():
+                     help="read the instruction from a file instead of the command line. Use this for "
+                          "anything long: a prompt containing \" or > gets mangled by the shell before "
+                          "python ever sees it, and the failure looks like the command not running")
+-    ap.add_argument("--max-steps", type=int, default=config.MAX_STEPS)
++    ap.add_argument("--max-steps", type=int, default=config.MAX_STEPS,
++                    help="model-call limit explicitly requested by the operator; 0 means unlimited (default)")
+     ap.add_argument("--start", choices=["zero", "home", "none"], default="zero",
+                     help="rest pose: zero (default), the old tuned home, or never travel to one")
+     ap.add_argument("--move-on-start", action="store_true",

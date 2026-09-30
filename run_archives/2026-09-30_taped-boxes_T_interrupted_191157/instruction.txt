@@ -1,0 +1,1 @@
+There are two black boxes in front of you, each of them has tapes on four edges. Put one of the boxes standing vertically, and the other horizontally on top of it. In the final position, all taped edges on the two boxes should remain parallel, which means it should look like a standing fattened letter T.

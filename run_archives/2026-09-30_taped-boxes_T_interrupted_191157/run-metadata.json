@@ -1,0 +1,26 @@
+{
+  "episode": "20260930-191157",
+  "base_commit": "28308e62b8adefa58d6ab70be9f2f3ed96dfe7a7",
+  "backend": "codex",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "arm": {
+    "role": "right",
+    "interface": "can3",
+    "port": 50052
+  },
+  "arm_speed": "slow",
+  "camera_settings": {
+    "width": 640,
+    "height": 480,
+    "fps": 5
+  },
+  "harness_cpuset": "4-9",
+  "max_steps": 0,
+  "termination": "Operator requested stop; immediate-home interrupt handler exited with code 130.",
+  "home_verified": true,
+  "home_joint_tolerance_deg": 1,
+  "final_state": "IDLE",
+  "final_gripper_gap_m": 0.06939676569295353,
+  "command": "HARNESS_CPUSET=4-9 HARNESS_VLM_API=codex HARNESS_VLM_MODEL=gpt-6-astra HARNESS_VLM_REASONING=high HARNESS_MAX_STEPS=0 bash harness/scripts/run_cpu_limited.sh --max-steps 0 --start home --arm-speed slow --no-viz --keep-logs 0 --instruction-file hardware_checks/taped_boxes_instruction.txt"
+}
